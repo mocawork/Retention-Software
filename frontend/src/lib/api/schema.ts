@@ -30,12 +30,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         get: operations["brands_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         patch: operations["brands_partial_update"];
         trace?: never;
     };
@@ -46,6 +54,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         get: operations["brands_audit_log_list"];
         put?: never;
         post?: never;
@@ -62,10 +74,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         get: operations["brands_invitations_list"];
         put?: never;
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         post: operations["brands_invitations_create"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/brands/{brand_id}/invitations/{invitation_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Revoke (cancel) an invitation. Owner/Admin; only an Owner can revoke an Owner invite. */
+        delete: operations["brands_invitations_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -78,6 +115,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         get: operations["brands_members_list"];
         put?: never;
         post?: never;
@@ -97,9 +138,17 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         delete: operations["brands_members_destroy"];
         options?: never;
         head?: never;
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         patch: operations["brands_members_partial_update"];
         trace?: never;
     };
@@ -110,6 +159,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         get: operations["brands_onboarding_retrieve"];
         put?: never;
         post?: never;
@@ -135,6 +188,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invitations/{token}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Public: what an invitation link is for, so the invitee can sign up or log in.
+         *
+         *     Unknown tokens get a plain 404, the same as any missing page.
+         */
+        get: operations["invitations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invitations/accept/": {
         parameters: {
             query?: never;
@@ -144,6 +218,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * @description Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+         *     exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
+         */
         post: operations["invitations_accept_create"];
         delete?: never;
         options?: never;
@@ -167,6 +245,26 @@ export interface paths {
         head?: never;
         /** @description The logged-in user's own profile. */
         patch: operations["me_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/me/security-events/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description My own latest 50 security events (logins, failed attempts, password and 2-step
+         *     changes). Reachable before 2-step login is set up, like /me/.
+         */
+        get: operations["me_security_events_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -209,6 +307,15 @@ export interface components {
          * @enum {string}
          */
         BrandStatusEnum: "onboarding" | "active" | "suspended";
+        /** @description Every API error has this shape (apps/core/exceptions.py). */
+        Error: {
+            /** @description Stable machine code, e.g. "not_found". */
+            code: string;
+            /** @description Plain-English message that can be shown. */
+            message: string;
+            /** @description Field errors, or {} when there are none. */
+            details: unknown;
+        };
         Health: {
             status: string;
         };
@@ -217,11 +324,34 @@ export interface components {
             /** Format: email */
             email: string;
             role: components["schemas"]["RoleEnum"];
+            /**
+             * @description 'expired' = the 7-day link ran out; invite again to send a new one.
+             *
+             *     * `pending` - Pending
+             *     * `accepted` - Accepted
+             *     * `revoked` - Revoked
+             *     * `expired` - Expired
+             */
             readonly status: components["schemas"]["InvitationStatusEnum"];
             /** Format: date-time */
             readonly expires_at: string;
             /** Format: date-time */
             readonly created_at: string;
+        };
+        /** @description What the invitee sees before logging in. No IDs, nothing else about the brand. */
+        InvitationPreview: {
+            brand_name: string;
+            role: components["schemas"]["RoleEnum"];
+            /**
+             * Format: email
+             * @description The address the invitation was sent to.
+             */
+            email: string;
+            /** @description Inviter's name, or their email. */
+            invited_by_name: string;
+            status: components["schemas"]["InvitationStatusEnum"];
+            /** Format: date-time */
+            expires_at: string;
         };
         InvitationRequest: {
             /** Format: email */
@@ -232,9 +362,10 @@ export interface components {
          * @description * `pending` - Pending
          *     * `accepted` - Accepted
          *     * `revoked` - Revoked
+         *     * `expired` - Expired
          * @enum {string}
          */
-        InvitationStatusEnum: "pending" | "accepted" | "revoked";
+        InvitationStatusEnum: "pending" | "accepted" | "revoked" | "expired";
         Me: {
             readonly id: string;
             /** Format: email */
@@ -299,6 +430,29 @@ export interface components {
          * @enum {string}
          */
         RoleEnum: "owner" | "admin" | "marketer" | "viewer";
+        SecurityEvent: {
+            readonly id: string;
+            readonly type: components["schemas"]["SecurityEventTypeEnum"];
+            /** @description Plain-English line to show, e.g. 'Logged in'. */
+            readonly description: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly ip_address: string | null;
+            readonly user_agent: string;
+        };
+        /**
+         * @description * `login` - Logged in
+         *     * `login_failed` - Failed login attempt
+         *     * `logout` - Logged out
+         *     * `email_verified` - Email address verified
+         *     * `password_reset` - Password reset by email link
+         *     * `password_changed` - Password changed
+         *     * `mfa_enabled` - 2-step login turned on
+         *     * `mfa_disabled` - 2-step login turned off
+         *     * `recovery_codes_generated` - New recovery codes created
+         * @enum {string}
+         */
+        SecurityEventTypeEnum: "login" | "login_failed" | "logout" | "email_verified" | "password_reset" | "password_changed" | "mfa_enabled" | "mfa_disabled" | "recovery_codes_generated";
         /**
          * @description * `done` - done
          *     * `current` - current
@@ -477,6 +631,51 @@ export interface operations {
             };
         };
     };
+    brands_invitations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                brand_id: string;
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     brands_members_list: {
         parameters: {
             query?: never;
@@ -587,6 +786,43 @@ export interface operations {
             };
         };
     };
+    invitations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     invitations_accept_create: {
         parameters: {
             query?: never;
@@ -652,6 +888,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    me_security_events_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecurityEvent"][];
                 };
             };
         };

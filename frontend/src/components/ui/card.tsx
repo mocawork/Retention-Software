@@ -31,7 +31,11 @@ export function CardTitle({ className, ...props }: ComponentProps<"h2">) {
 
 export function CardDescription({ className, ...props }: ComponentProps<"p">) {
   return (
-    <p data-slot="card-description" className={cn("text-sm text-text-muted", className)} {...props} />
+    <p
+      data-slot="card-description"
+      className={cn("text-sm text-text-muted", className)}
+      {...props}
+    />
   );
 }
 

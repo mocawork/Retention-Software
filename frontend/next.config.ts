@@ -16,8 +16,12 @@ const nextConfig: NextConfig = {
   // Don't let `next dev` write an AGENTS.md file; agents read CLAUDE.md in this repo.
   agentRules: false,
   async rewrites() {
+    // `:path*` drops a trailing "/", and Django's URLs need it (otherwise Django answers
+    // 301 → the same URL → a redirect loop). So paths ending in "/" get their own rule.
     return [
+      { source: "/api/:path*/", destination: `${backendUrl}/api/:path*/` },
       { source: "/api/:path*", destination: `${backendUrl}/api/:path*` },
+      { source: "/_allauth/:path*/", destination: `${backendUrl}/_allauth/:path*/` },
       { source: "/_allauth/:path*", destination: `${backendUrl}/_allauth/:path*` },
     ];
   },

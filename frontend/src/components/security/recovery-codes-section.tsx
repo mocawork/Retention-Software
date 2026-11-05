@@ -41,9 +41,7 @@ export function RecoveryCodesSection() {
   }
 
   if (reauthFor) {
-    return (
-      <ReauthForm onCancel={() => setReauthFor(null)} onSuccess={() => run(reauthFor)} />
-    );
+    return <ReauthForm onCancel={() => setReauthFor(null)} onSuccess={() => run(reauthFor)} />;
   }
 
   return (
@@ -61,14 +59,18 @@ export function RecoveryCodesSection() {
       {result && result.codes?.length ? <RecoveryCodeList codes={result.codes} /> : null}
       {result && !result.codes?.length ? (
         <p className="text-sm">
-          You have {formatCount(result.unusedCount)} of {formatCount(result.totalCount)} codes
-          left. For your security they&apos;re only shown once. If you&apos;ve lost them, make
-          new ones.
+          You have {formatCount(result.unusedCount)} of {formatCount(result.totalCount)} codes left.
+          For your security they&apos;re only shown once. If you&apos;ve lost them, make new ones.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {result === undefined ? (
-          <Button variant="outline" onClick={() => run("view")} disabled={loading} aria-busy={loading}>
+          <Button
+            variant="outline"
+            onClick={() => run("view")}
+            disabled={loading}
+            aria-busy={loading}
+          >
             {loading ? "Loading…" : "Show my recovery codes"}
           </Button>
         ) : null}

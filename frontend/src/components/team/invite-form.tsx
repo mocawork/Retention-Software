@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { errorMessage, isApiError } from "@/lib/api/errors";
 import { assignableRoles, ROLE_DESCRIPTIONS, ROLE_LABELS, type Role } from "@/lib/roles";
-import { emailSchema } from "@/lib/validation";
+import { emailSchema, roleSchema } from "@/lib/validation";
 
-const roleSchema = z.enum(["owner", "admin", "marketer", "viewer"]);
 const schema = z.object({ email: emailSchema, role: roleSchema });
 
 export type InviteValues = z.output<typeof schema>;
@@ -35,10 +34,12 @@ export function InviteForm({
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm({
     resolver: zodResolver(
-      schema.refine((v) => roles.includes(v.role), {
-        path: ["role"],
-        error: "Pick a role you're allowed to give.",
-      }),
+      schema.check(
+        z.refine((v) => roles.includes(v.role), {
+          path: ["role"],
+          error: "Pick a role you're allowed to give.",
+        }),
+      ),
     ),
     mode: "onBlur",
     defaultValues: { email: "", role: "viewer" as Role },

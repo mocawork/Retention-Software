@@ -30,8 +30,8 @@ export function TeamView() {
         <Alert variant="info">
           <Info aria-hidden="true" />
           <AlertDescription className="text-text">
-            You can see who&apos;s on the team. Only Owners and Admins can invite people or
-            change roles.
+            You can see who&apos;s on the team. Only Owners and Admins can invite people or change
+            roles.
           </AlertDescription>
         </Alert>
       )}

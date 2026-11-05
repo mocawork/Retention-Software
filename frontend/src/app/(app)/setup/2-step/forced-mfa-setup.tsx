@@ -29,9 +29,7 @@ export function ForcedMfaSetup() {
           <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <ShieldCheck aria-hidden="true" className="size-5" />
           </span>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Set up 2-step login to continue
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Set up 2-step login to continue</h1>
           <p className="text-sm text-text-muted">
             {me.mfa.enabled
               ? "2-step login is on for your account."

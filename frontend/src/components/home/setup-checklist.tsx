@@ -9,7 +9,12 @@ type State = OnboardingStep["state"];
 
 const STATE: Record<
   State,
-  { label: string; icon: LucideIcon; iconClass: string; badge: "success" | "default" | "info" | "neutral" }
+  {
+    label: string;
+    icon: LucideIcon;
+    iconClass: string;
+    badge: "success" | "default" | "info" | "neutral";
+  }
 > = {
   done: { label: "Done", icon: CircleCheck, iconClass: "text-success", badge: "success" },
   current: { label: "Next step", icon: CircleDot, iconClass: "text-primary", badge: "default" },
@@ -50,7 +55,10 @@ export function SetupChecklist({ steps }: { steps: readonly OnboardingStep[] }) 
             )}
           >
             <div className="flex flex-1 gap-3">
-              <meta.icon aria-hidden="true" className={cn("mt-0.5 size-5 shrink-0", meta.iconClass)} />
+              <meta.icon
+                aria-hidden="true"
+                className={cn("mt-0.5 size-5 shrink-0", meta.iconClass)}
+              />
               <div className="grid flex-1 gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3
@@ -59,8 +67,7 @@ export function SetupChecklist({ steps }: { steps: readonly OnboardingStep[] }) 
                       step.state === "locked" && "text-text-muted",
                     )}
                   >
-                    <span className="sr-only">Step {index + 1}: </span>
-                    {step.title}
+                    <span className="sr-only">Step {index + 1}:</span> {step.title}
                   </h3>
                   <Badge variant={meta.badge}>{meta.label}</Badge>
                 </div>

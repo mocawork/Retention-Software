@@ -5,8 +5,8 @@ import { ApiError, call, toApiError } from "./errors";
 import type { paths } from "./schema";
 
 function stubFetch(status = 200, body: unknown = {}) {
-  const fetchMock = vi.fn(
-    async (_request: Request) =>
+  const fetchMock = vi.fn<(request: Request) => Promise<Response>>(
+    async () =>
       new Response(JSON.stringify(body), {
         status,
         headers: { "Content-Type": "application/json" },
@@ -120,7 +120,10 @@ describe("error parsing", () => {
   it("returns data for 2xx and throws ApiError otherwise", async () => {
     const ok = { data: { id: 1 }, response: new Response(null, { status: 200 }) };
     await expect(call(Promise.resolve(ok))).resolves.toEqual({ id: 1 });
-    const bad = { error: { code: "x", message: "Nope." }, response: new Response(null, { status: 403 }) };
+    const bad = {
+      error: { code: "x", message: "Nope." },
+      response: new Response(null, { status: 403 }),
+    };
     await expect(call(Promise.resolve(bad))).rejects.toBeInstanceOf(ApiError);
   });
 });

@@ -77,7 +77,10 @@ export function MfaChallengeForm({ next }: { next: string | null }) {
           : "Open your authenticator app and type the 6-digit code it shows for RetentionOS."
       }
       footer={
-        <Link className="font-medium text-primary underline" href={withNext(routes.login, safeNext)}>
+        <Link
+          className="font-medium text-primary underline"
+          href={withNext(routes.login, safeNext)}
+        >
           Back to log in
         </Link>
       }

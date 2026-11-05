@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { useCurrentMe } from "@/components/auth/auth-gate";
 import { FormError } from "@/components/form-error";
@@ -20,7 +20,10 @@ import { useBrands, useCreateBrand } from "@/lib/queries";
 import { routes } from "@/lib/routes";
 import { brandNameSchema } from "@/lib/validation";
 
-const schema = z.object({ name: brandNameSchema, timezone: z.string().min(1) });
+const schema = z.object({
+  name: brandNameSchema,
+  timezone: z.string().check(z.minLength(1)),
+});
 
 function timezoneOptions(): string[] {
   let zones: string[] = [];
@@ -78,8 +81,8 @@ export function NewBrandView() {
         <div className="grid gap-1.5">
           <h1 className="text-2xl font-semibold tracking-tight">Create your brand</h1>
           <p className="text-sm text-text-muted">
-            This is the business RetentionOS will learn from. You&apos;ll connect your store
-            after this.
+            This is the business RetentionOS will learn from. You&apos;ll connect your store after
+            this.
           </p>
         </div>
         <form

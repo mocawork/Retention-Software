@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { AuthCard } from "@/components/auth/auth-card";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -19,12 +19,12 @@ import { checkPasswordResetKey, decodeKey, resetPassword } from "@/lib/auth/alla
 import { routes } from "@/lib/routes";
 import { newPasswordSchema, PASSWORD_MIN_LENGTH } from "@/lib/validation";
 
-const schema = z
-  .object({ password: newPasswordSchema, confirm: z.string() })
-  .refine((v) => v.password === v.confirm, {
+const schema = z.object({ password: newPasswordSchema, confirm: z.string() }).check(
+  z.refine((v) => v.password === v.confirm, {
     path: ["confirm"],
     error: "The two passwords don't match.",
-  });
+  }),
+);
 
 export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
   const key = decodeKey(rawKey);
@@ -37,6 +37,8 @@ export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
     queryFn: () => checkPasswordResetKey(key).then(() => true),
     retry: false,
     refetchOnWindowFocus: false,
+    // Once the password is changed the key is used up: never ask about it again.
+    enabled: !done,
   });
   const form = useForm({
     resolver: zodResolver(schema),
@@ -49,10 +51,13 @@ export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
     setFormError(null);
     try {
       const state = await resetPassword(key, values.password);
-      queryClient.clear();
-      if (state.status === "authenticated") router.replace(routes.root);
-      else if (state.pendingFlow === "mfa_authenticate") router.replace(routes.mfaChallenge);
-      else setDone(true);
+      setDone(true);
+      if (state.status === "authenticated") {
+        queryClient.clear();
+        router.replace(routes.root);
+      } else if (state.pendingFlow === "mfa_authenticate") {
+        router.replace(routes.mfaChallenge);
+      }
     } catch (error) {
       if (isApiError(error, "invalid_link")) {
         setFormError(error.message);
@@ -62,6 +67,19 @@ export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
       if (passwordError) form.setError("password", { message: passwordError });
       else setFormError(errorMessage(error));
     }
+  }
+
+  if (done) {
+    return (
+      <AuthCard
+        title="Your password is changed"
+        description="Log in with your new password to carry on."
+      >
+        <Button asChild className="w-full">
+          <Link href={routes.login}>Log in</Link>
+        </Button>
+      </AuthCard>
+    );
   }
 
   if (check.isPending) {
@@ -88,19 +106,6 @@ export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
     );
   }
 
-  if (done) {
-    return (
-      <AuthCard
-        title="Your password is changed"
-        description="Log in with your new password to carry on."
-      >
-        <Button asChild className="w-full">
-          <Link href={routes.login}>Log in</Link>
-        </Button>
-      </AuthCard>
-    );
-  }
-
   return (
     <AuthCard title="Choose a new password">
       <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
@@ -112,7 +117,11 @@ export function ResetPasswordForm({ rawKey }: { rawKey: string }) {
           error={errors.password?.message}
         >
           {(control) => (
-            <PasswordInput {...control} autoComplete="new-password" {...form.register("password")} />
+            <PasswordInput
+              {...control}
+              autoComplete="new-password"
+              {...form.register("password")}
+            />
           )}
         </Field>
         <Field id="confirm" label="Type it again" error={errors.confirm?.message}>

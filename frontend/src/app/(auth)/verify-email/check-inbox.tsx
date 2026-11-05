@@ -31,8 +31,8 @@ export function CheckInbox({ email }: { email: string | null }) {
           <MailCheck aria-hidden="true" className="size-5 shrink-0 text-primary" />
           <p>
             We&apos;ve sent a confirmation link to{" "}
-            {email ? <strong className="break-all">{email}</strong> : "your email address"}.
-            Click it to finish creating your account.
+            {email ? <strong className="break-all">{email}</strong> : "your email address"}. Click
+            it to finish creating your account.
           </p>
         </div>
         <p className="text-text-muted">

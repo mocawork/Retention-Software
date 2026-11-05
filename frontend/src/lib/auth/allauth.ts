@@ -205,8 +205,7 @@ function reauthRequired(): ApiError {
 }
 
 export type TotpStatus =
-  | { status: "active" }
-  | { status: "not_set_up"; secret: string; totpUrl: string };
+  { status: "active" } | { status: "not_set_up"; secret: string; totpUrl: string };
 
 /**
  * Careful: each call while 2-step login is off makes allauth issue a NEW secret, so call

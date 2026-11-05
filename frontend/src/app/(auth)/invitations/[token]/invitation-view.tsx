@@ -10,12 +10,17 @@ import { FormError } from "@/components/form-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorMessage } from "@/lib/api/errors";
-import type { InvitationPreview } from "@/lib/api/pending-contract";
+import { errorMessage, isApiError } from "@/lib/api/errors";
 import { decodeKey, logout } from "@/lib/auth/allauth";
 import { withNext } from "@/lib/auth/return-to";
 import { formatDate } from "@/lib/format";
-import { useAcceptInvitation, useInvitationPreview, useMe, useSession } from "@/lib/queries";
+import {
+  useAcceptInvitation,
+  useInvitationPreview,
+  useMe,
+  useSession,
+  type InvitationPreview,
+} from "@/lib/queries";
 import { isRole, ROLE_DESCRIPTIONS, roleLabel } from "@/lib/roles";
 import { routes } from "@/lib/routes";
 
@@ -47,6 +52,19 @@ export function InvitationView({ rawToken }: { rawToken: string }) {
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="mt-2 h-10 w-full" />
         </div>
+      </AuthCard>
+    );
+  }
+
+  if (isApiError(preview.error) && preview.error.status === 404) {
+    return (
+      <AuthCard
+        title="This invitation link doesn't work"
+        description="It may be mistyped, or a newer invitation replaced it. Ask the person who invited you to send it again."
+      >
+        <Button asChild variant="outline" className="w-full">
+          <Link href={routes.root}>Go to RetentionOS</Link>
+        </Button>
       </AuthCard>
     );
   }
@@ -92,8 +110,7 @@ export function InvitationView({ rawToken }: { rawToken: string }) {
           <Alert variant="warning">
             <TriangleAlert aria-hidden="true" />
             <AlertDescription className="text-text">
-              We couldn&apos;t load the details of this invitation. You can still try to accept
-              it.
+              We couldn&apos;t load the details of this invitation. You can still try to accept it.
             </AlertDescription>
           </Alert>
         ) : null}

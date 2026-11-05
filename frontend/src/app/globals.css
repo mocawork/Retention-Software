@@ -45,8 +45,7 @@
   /* System fonts with full Devanagari and Tamil coverage (design.md §3.4 rule 18). */
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
-    "Noto Sans Devanagari", "Noto Sans Tamil", "Nirmala UI", "Helvetica Neue", Arial,
-    sans-serif;
+    "Noto Sans Devanagari", "Noto Sans Tamil", "Nirmala UI", "Helvetica Neue", Arial, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 

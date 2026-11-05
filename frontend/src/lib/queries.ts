@@ -8,7 +8,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api/client";
 import { call } from "@/lib/api/errors";
-import { pendingApi } from "@/lib/api/pending-contract";
 import type { components } from "@/lib/api/schema";
 import { getSession } from "@/lib/auth/allauth";
 import type { Role } from "@/lib/roles";
@@ -18,6 +17,8 @@ export type Me = components["schemas"]["Me"];
 export type Membership = components["schemas"]["Membership"];
 export type Invitation = components["schemas"]["Invitation"];
 export type OnboardingStep = components["schemas"]["OnboardingStep"];
+export type InvitationPreview = components["schemas"]["InvitationPreview"];
+export type SecurityEvent = components["schemas"]["SecurityEvent"];
 
 export const queryKeys = {
   session: ["auth", "session"] as const,
@@ -143,13 +144,12 @@ export function useRemoveMember(brandId: string) {
   });
 }
 
-/** TODO(M0): uses the pending contract until revoke is in backend/openapi.json. */
 export function useRevokeInvitation(brandId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (invitationId: string) =>
       call(
-        pendingApi.DELETE("/api/v1/brands/{brand_id}/invitations/{invitation_id}/", {
+        api.DELETE("/api/v1/brands/{brand_id}/invitations/{invitation_id}/", {
           params: { path: { brand_id: brandId, invitation_id: invitationId } },
         }),
       ),
@@ -157,12 +157,11 @@ export function useRevokeInvitation(brandId: string) {
   });
 }
 
-/** TODO(M0): uses the pending contract until the preview is in backend/openapi.json. */
+/** Public: what an invitation link is for (works logged out). */
 export function useInvitationPreview(token: string) {
   return useQuery({
     queryKey: queryKeys.invitationPreview(token),
-    queryFn: () =>
-      call(pendingApi.GET("/api/v1/invitations/{token}/", { params: { path: { token } } })),
+    queryFn: () => call(api.GET("/api/v1/invitations/{token}/", { params: { path: { token } } })),
   });
 }
 
@@ -175,10 +174,10 @@ export function useAcceptInvitation() {
   });
 }
 
-/** TODO(M0): uses the pending contract until security events are in backend/openapi.json. */
+/** My own recent security activity (logins, 2-step login changes…). */
 export function useSecurityEvents() {
   return useQuery({
     queryKey: queryKeys.securityEvents,
-    queryFn: () => call(pendingApi.GET("/api/v1/me/security-events/")),
+    queryFn: () => call(api.GET("/api/v1/me/security-events/")),
   });
 }

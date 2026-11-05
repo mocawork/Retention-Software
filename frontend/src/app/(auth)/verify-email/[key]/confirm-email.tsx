@@ -21,12 +21,6 @@ export function ConfirmEmail({ rawKey }: { rawKey: string }) {
   const key = decodeKey(rawKey);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const info = useQuery({
-    queryKey: ["auth", "email-verification", key],
-    queryFn: () => getEmailVerification(key),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
   const confirm = useMutation({
     mutationFn: () => verifyEmail(key),
     onSuccess: (state) => {
@@ -36,6 +30,35 @@ export function ConfirmEmail({ rawKey }: { rawKey: string }) {
       }
     },
   });
+
+  const info = useQuery({
+    queryKey: ["auth", "email-verification", key],
+    queryFn: () => getEmailVerification(key),
+    retry: false,
+    refetchOnWindowFocus: false,
+    // Once confirmed, the key is used up: never ask about it again.
+    enabled: confirm.isIdle || confirm.isError,
+  });
+
+  if (confirm.data?.status === "authenticated") {
+    return (
+      <AuthCard title="Your email is confirmed" description="Taking you to RetentionOS…">
+        <p className="sr-only" role="status">
+          Email confirmed. Opening RetentionOS…
+        </p>
+      </AuthCard>
+    );
+  }
+
+  if (confirm.data?.status === "unauthenticated") {
+    return (
+      <AuthCard title="Your email is confirmed" description="Log in to carry on setting up.">
+        <Button asChild className="w-full">
+          <Link href={routes.login}>Log in</Link>
+        </Button>
+      </AuthCard>
+    );
+  }
 
   if (info.isPending) {
     return (
@@ -63,16 +86,6 @@ export function ConfirmEmail({ rawKey }: { rawKey: string }) {
             <Link href={routes.login}>Log in</Link>
           </Button>
         </div>
-      </AuthCard>
-    );
-  }
-
-  if (confirm.data?.status === "unauthenticated") {
-    return (
-      <AuthCard title="Your email is confirmed" description="Log in to carry on setting up.">
-        <Button asChild className="w-full">
-          <Link href={routes.login}>Log in</Link>
-        </Button>
       </AuthCard>
     );
   }

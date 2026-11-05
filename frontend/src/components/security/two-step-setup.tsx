@@ -204,8 +204,8 @@ export function TwoStepSetup({ onDone }: { onDone: () => void }) {
         <li className="grid gap-3">
           <p className="font-medium">2. Add RetentionOS to the app</p>
           <p className="text-text-muted">
-            On your phone, tap the button below. On a computer, choose &quot;Enter a setup
-            key&quot; in the app and type this key:
+            On your phone, tap the button below. On a computer, choose &quot;Enter a setup key&quot;
+            in the app and type this key:
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded-md border border-border/40 bg-bg px-3 py-2 font-mono text-base tracking-wider break-all">

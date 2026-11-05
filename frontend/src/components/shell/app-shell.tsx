@@ -84,14 +84,26 @@ export function AppShell({
 
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/40 bg-surface px-2 lg:hidden">
         <BrandSwitcher current={brand} brands={brands} className="flex-1" />
-        <UserMenu email={me.email} name={me.full_name || undefined} securityHref={securityHref} compact />
+        <UserMenu
+          email={me.email}
+          name={me.full_name || undefined}
+          securityHref={securityHref}
+          compact
+        />
       </header>
 
       <div className="lg:pl-64">
         {pathname === securityHref ? null : (
-          <MfaBanner mfa={me.mfa} timeZone={brand.timezone ?? "Asia/Kolkata"} setupHref={securityHref} />
+          <MfaBanner
+            mfa={me.mfa}
+            timeZone={brand.timezone ?? "Asia/Kolkata"}
+            setupHref={securityHref}
+          />
         )}
-        <main id="main" className="mx-auto w-full max-w-7xl px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-12">
+        <main
+          id="main"
+          className="mx-auto w-full max-w-7xl px-4 pt-6 pb-28 sm:px-6 lg:px-8 lg:pb-12"
+        >
           {children}
         </main>
       </div>
@@ -144,12 +156,12 @@ function MobileTab({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex h-16 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium text-text-muted",
+        "flex h-16 flex-col items-center justify-center gap-1 text-[0.65rem] font-medium tracking-tight text-text-muted",
         active && "text-primary",
       )}
     >
       {icon}
-      <span className="max-w-full truncate px-1">{label}</span>
+      <span className="max-w-full truncate px-0.5">{label}</span>
     </Link>
   );
 }

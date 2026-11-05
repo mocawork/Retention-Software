@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { AuthCard } from "@/components/auth/auth-card";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -19,18 +19,16 @@ import { errorMessage, isApiError } from "@/lib/api/errors";
 import { login } from "@/lib/auth/allauth";
 import { consumeReturnTo, safeNextPath, withNext } from "@/lib/auth/return-to";
 import { routes } from "@/lib/routes";
-import { emailSchema } from "@/lib/validation";
+import { emailSchema, requiredPasswordSchema } from "@/lib/validation";
 
-const schema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, { error: "Enter your password." }),
-});
+const schema = z.object({ email: emailSchema, password: requiredPasswordSchema });
 
 export function LoginForm({ next }: { next: string | null }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const safeNext = safeNextPath(next);
-  useRedirectIfAuthenticated(safeNext);
+  const [leaving, setLeaving] = useState(false);
+  useRedirectIfAuthenticated(safeNext, leaving);
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm({
     resolver: zodResolver(schema),
@@ -43,6 +41,7 @@ export function LoginForm({ next }: { next: string | null }) {
     setFormError(null);
     try {
       const state = await login(values.email, values.password);
+      setLeaving(true);
       queryClient.clear();
       if (state.status === "authenticated") {
         router.replace(safeNext ?? consumeReturnTo() ?? routes.root);

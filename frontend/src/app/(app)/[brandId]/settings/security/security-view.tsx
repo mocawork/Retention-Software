@@ -15,29 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_TIMEZONE, formatDateTime } from "@/lib/format";
 import { useSecurityEvents } from "@/lib/queries";
 
-/**
- * Labels for security event codes. TODO(M0): align with the backend's final action
- * names when GET /api/v1/me/security-events/ lands in backend/openapi.json.
- */
-const EVENT_LABELS: Record<string, string> = {
-  "auth.login": "Logged in",
-  "auth.logout": "Logged out",
-  "auth.login_failed": "Failed log-in attempt",
-  "auth.password_changed": "Password changed",
-  "auth.password_reset": "Password reset",
-  "mfa.totp_activated": "2-step login turned on",
-  "mfa.totp_deactivated": "2-step login turned off",
-  "mfa.recovery_codes_generated": "New recovery codes made",
-  "mfa.recovery_code_used": "Recovery code used to log in",
-};
-
-export function eventLabel(action: string): string {
-  const known = EVENT_LABELS[action];
-  if (known) return known;
-  const words = action.replace(/[._]+/g, " ").trim();
-  return words ? words.charAt(0).toUpperCase() + words.slice(1) : "Account activity";
-}
-
 export function SecurityView() {
   const me = useCurrentMe();
   const brand = useCurrentBrand();
@@ -101,7 +78,7 @@ export function SecurityView() {
   );
 }
 
-/** TODO(M0): uses the pending contract (src/lib/api/pending-contract.ts). */
+/** GET /api/v1/me/security-events/: the API writes each line in plain English. */
 function SecurityEvents({ timeZone }: { timeZone: string }) {
   const events = useSecurityEvents();
   if (events.isPending) {
@@ -131,7 +108,7 @@ function SecurityEvents({ timeZone }: { timeZone: string }) {
     <ul className="divide-y divide-border/30">
       {events.data.map((event) => (
         <li key={event.id} className="flex flex-col gap-0.5 py-3 sm:flex-row sm:justify-between">
-          <span className="text-sm font-medium">{eventLabel(event.action)}</span>
+          <span className="text-sm font-medium">{event.description}</span>
           <span className="text-xs text-text-muted sm:text-sm">
             {formatDateTime(event.created_at, timeZone)}
             {event.ip_address ? ` · ${event.ip_address}` : ""}

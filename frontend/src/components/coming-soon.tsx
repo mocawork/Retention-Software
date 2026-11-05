@@ -26,8 +26,8 @@ export function ComingSoon({
           <>
             <p>{description}</p>
             <p className="mt-2">
-              It needs your store data first. Connecting your store is the next step on your
-              setup checklist.
+              It needs your store data first. Connecting your store is the next step on your setup
+              checklist.
             </p>
           </>
         }

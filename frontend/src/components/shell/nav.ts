@@ -70,7 +70,8 @@ export const COMING_LATER: Record<string, { label: string; description: string }
   },
   analytics: {
     label: "Analytics",
-    description: "Business and campaign performance: extra revenue from campaigns, ROI and history.",
+    description:
+      "Business and campaign performance: extra revenue from campaigns, ROI and history.",
   },
   brand: {
     label: "Brand",

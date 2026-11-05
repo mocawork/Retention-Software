@@ -55,7 +55,11 @@ export function PendingInvitations({ brandId, timeZone }: { brandId: string; tim
           </div>
           <ConfirmActionDialog
             trigger={
-              <Button variant="outline" size="sm" aria-label={`Revoke invitation for ${invitation.email}`}>
+              <Button
+                variant="outline"
+                size="sm"
+                aria-label={`Revoke invitation for ${invitation.email}`}
+              >
                 Revoke
               </Button>
             }

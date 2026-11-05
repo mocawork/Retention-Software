@@ -5,7 +5,7 @@ import { MailCheck } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import { AuthCard } from "@/components/auth/auth-card";
 import { FormError } from "@/components/form-error";
