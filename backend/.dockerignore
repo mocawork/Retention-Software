@@ -1,0 +1,22 @@
+# Files Docker leaves out of the backend image. Secrets (.env) must never be baked into an image.
+.env
+.env.*
+
+# Local virtual environment and caches (the image builds its own environment).
+.venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local output.
+tmp/
+staticfiles/
+*.log
+
+# Docker's own files.
+Dockerfile
+.dockerignore

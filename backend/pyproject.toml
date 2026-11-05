@@ -39,3 +39,22 @@ extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "DJ"]
+
+# Type checking (technical.md §2.2). Not --strict for M0: functions without type hints are
+# still checked inside (check_untyped_defs), but hints are not yet required everywhere.
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+check_untyped_defs = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+exclude = ['(^|/)\.venv/', '(^|/)migrations/', '(^|/)tmp/', '(^|/)staticfiles/']
+
+# These libraries ship without type information, and no stubs are installed for them.
+[[tool.mypy.overrides]]
+module = ["rest_framework.*", "allauth.*", "celery.*", "django_celery_beat.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"

@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens (design.md §7). Names are final; VALUES ARE PLACEHOLDERS until the
+ * brand work is done (D-016). When the brand is defined, only the values here change.
+ *
+ * Tailwind turns each token into utilities (`bg-surface`, `text-text-muted`,
+ * `border-border`, `rounded-md`, `shadow-sm`, `font-sans`…) and also exposes it as a CSS
+ * variable on :root. The default Tailwind palette is switched off (`--color-*: initial`),
+ * so components can only use RetentionOS tokens, never hard-coded colours.
+ *
+ * Contrast (WCAG 2.2 AA, against --color-surface and --color-bg):
+ * text 17.7:1 · text-muted 7.4:1 · primary 7.3:1 (white on primary 7.3:1) ·
+ * border 3.4:1 (form-control edges need 3:1) · success 5.8:1 · warning 5.3:1 ·
+ * danger 6.6:1 · info 6.8:1. Semantic text stays above 4.5:1 on its own 8% tint.
+ */
+@theme static {
+  --color-*: initial;
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-text: #18181b;
+  --color-text-muted: #55555e;
+  --color-primary: #2b4fb3;
+  --color-primary-foreground: #ffffff;
+  --color-border: #8b8b95;
+  --color-success: #17753a;
+  --color-warning: #946000;
+  --color-danger: #b42318;
+  --color-info: #1f5aa6;
+  --color-health-active: #17753a;
+  --color-health-atrisk: #9a5a00;
+  --color-health-dormant: #5f6470;
+  --color-health-churned: #b42318;
+  --color-confidence-high: #17753a;
+  --color-confidence-medium: #946000;
+  --color-confidence-low: #5f6470;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* Tailwind's spacing utilities (p-4, gap-2…) are multiples of the 4 px --space-1 token. */
+  --spacing: var(--space-1);
+
+  /* System fonts with full Devanagari and Tamil coverage (design.md §3.4 rule 18). */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans",
+    "Noto Sans Devanagari", "Noto Sans Tamil", "Nirmala UI", "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --shadow-sm: 0 1px 2px 0 rgb(24 24 27 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(24 24 27 / 0.12), 0 2px 4px -2px rgb(24 24 27 / 0.08);
+}
+
+/* 4 px spacing scale (design.md §3.5 rule 20). */
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Numbers line up in lists and tables. */
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Visible keyboard focus everywhere (design.md §3.5 rule 25). */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Respect reduced motion (design.md §3.5 rules 25 and 27). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
