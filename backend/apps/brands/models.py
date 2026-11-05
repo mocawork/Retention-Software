@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import PublicIdModel, TenantModel
 
@@ -38,7 +39,7 @@ class Role(models.TextChoices):
     VIEWER = "viewer", "Viewer"
 
 
-ROLE_RANK = {Role.VIEWER: 1, Role.MARKETER: 2, Role.ADMIN: 3, Role.OWNER: 4}
+ROLE_RANK: dict[str, int] = {Role.VIEWER: 1, Role.MARKETER: 2, Role.ADMIN: 3, Role.OWNER: 4}
 
 
 class Membership(TenantModel):
@@ -64,6 +65,9 @@ class Invitation(TenantModel):
         PENDING = "pending"
         ACCEPTED = "accepted"
         REVOKED = "revoked"
+        # Never stored: a pending invitation past `expires_at` is *reported* as expired
+        # (see `effective_status`), so no nightly job is needed to keep it correct.
+        EXPIRED = "expired"
 
     email = models.EmailField()
     role = models.CharField(max_length=16, choices=Role.choices)
@@ -77,3 +81,14 @@ class Invitation(TenantModel):
 
     class Meta:
         indexes = [models.Index(fields=["brand", "status"])]
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at <= timezone.now()
+
+    @property
+    def effective_status(self) -> str:
+        """What the team page and the invitee see: pending, accepted, revoked or expired."""
+        if self.status == self.Status.PENDING and self.is_expired:
+            return self.Status.EXPIRED
+        return self.status

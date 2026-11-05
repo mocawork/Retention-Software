@@ -1,0 +1,1 @@
+{% autoescape off %}{{ inviter_name }} invited you to {{ brand_name }} on RetentionOS{% endautoescape %}

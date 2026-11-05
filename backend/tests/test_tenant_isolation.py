@@ -3,10 +3,12 @@
 Add every new brand-scoped URL to BRAND_URLS. test_every_brand_route_is_covered fails
 if a brand route exists that this suite doesn't hit.
 """
+
 import pytest
-from django.urls import get_resolver
+from django.urls import URLResolver, get_resolver
 
 from apps.audit.models import AuditLog
+from apps.brands.services import invite_member
 from apps.core.models import UnscopedTenantQuery
 
 BRAND_URLS = [
@@ -18,6 +20,7 @@ BRAND_URLS = [
     ("delete", "/api/v1/brands/{b}/members/{m}/"),
     ("get", "/api/v1/brands/{b}/invitations/"),
     ("post", "/api/v1/brands/{b}/invitations/"),
+    ("delete", "/api/v1/brands/{b}/invitations/{i}/"),
     ("get", "/api/v1/brands/{b}/audit-log/"),
 ]
 
@@ -30,10 +33,19 @@ def test_other_brand_returns_404(method, url, brand_with, client_for):
     brand_a, owner_a = brand_with(email="a@a.in")
     brand_b, owner_b = brand_with(email="b@b.in")
     member_b = Membership.objects.for_brand(brand_b).get(user=owner_b)
+    invite_b = invite_member(actor_membership=member_b, email="new@b.in", role="viewer")
     c = client_for(owner_a)
-    r = getattr(c, method)(url.format(b=brand_b.public_id, m=member_b.public_id),
-                           {"name": "x", "email": "x@x.in", "role": "viewer"}, format="json")
+    r = getattr(c, method)(
+        url.format(b=brand_b.public_id, m=member_b.public_id, i=invite_b.public_id),
+        {"name": "x", "email": "x@x.in", "role": "viewer"},
+        format="json",
+    )
     assert r.status_code == 404, (method, url, r.status_code)
+    assert r.json()["code"] == "not_found"
+    # Nothing in brand B changed.
+    invite_b.refresh_from_db()
+    assert invite_b.status == "pending"
+    assert Membership.objects.for_brand(brand_b).count() == 1
 
 
 def test_every_brand_route_is_covered():
@@ -41,12 +53,18 @@ def test_every_brand_route_is_covered():
     resolver = get_resolver()
     found = set()
     for p in resolver.url_patterns:
-        if str(p.pattern) != "api/v1/":
+        if not isinstance(p, URLResolver) or str(p.pattern) != "api/v1/":
             continue
         for sub in p.url_patterns:
-            if str(sub.pattern).startswith("brands/<str:brand_id>/"):
+            if isinstance(sub, URLResolver) and str(sub.pattern).startswith(
+                "brands/<str:brand_id>/"
+            ):
                 for leaf in sub.url_patterns:
-                    found.add(str(leaf.pattern).replace("<str:member_id>", "{m}"))
+                    found.add(
+                        str(leaf.pattern)
+                        .replace("<str:member_id>", "{m}")
+                        .replace("<str:invitation_id>", "{i}")
+                    )
     assert found <= covered, f"Add to BRAND_URLS: {found - covered}"
 
 
@@ -62,6 +80,7 @@ def test_unscoped_tenant_query_raises_in_tests(brand_with):
 def test_audit_log_is_append_only(brand_with):
     brand, _ = brand_with()
     entry = AuditLog.objects.for_brand(brand).first()
+    assert entry is not None
     entry.action = "tampered"
     with pytest.raises(ValueError):
         entry.save()

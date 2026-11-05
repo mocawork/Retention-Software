@@ -1,6 +1,9 @@
 """Base settings shared by every environment. Secrets come only from environment variables."""
+
 import os
 from pathlib import Path
+
+from apps.core.observability import init_sentry, logging_config
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -49,6 +52,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # request_id / user_id / brand_id on every log line + one access line per request.
+    "apps.core.middleware.RequestContextMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -65,7 +70,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # Our own templates (emails) come first, so they override allauth's defaults.
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -95,8 +101,10 @@ AUTH_USER_MODEL = "accounts.User"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-     "OPTIONS": {"min_length": 10}},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -121,6 +129,8 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 6 * 60 * 60}
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TIMEZONE = "UTC"
+# Let our LOGGING (structlog) format worker logs too, instead of Celery's own handler.
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
 CACHES = {
     "default": {
@@ -146,6 +156,12 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
+    # Stable names for the frontend's generated types (several fields are called "status").
+    "ENUM_NAME_OVERRIDES": {
+        "BrandStatusEnum": "apps.brands.models.Brand.Status",
+        "InvitationStatusEnum": "apps.brands.models.Invitation.Status",
+        "SecurityEventTypeEnum": "apps.audit.models.SecurityEvent.Type",
+    },
 }
 
 # --- Accounts: django-allauth headless (technical.md §13, §16.1) ---
@@ -157,7 +173,12 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_LOGIN_BY_CODE_ENABLED = False
-ACCOUNT_RATE_LIMITS = {"login_failed": "5/5m/ip,5/5m/key"}
+# Our adapter only adds "how long is this link valid" to the email templates.
+ACCOUNT_ADAPTER = "apps.accounts.adapter.AccountAdapter"
+# Subjects are written in full in backend/templates/account/email/*_subject.txt; without
+# this, allauth would prefix them with "[<site domain>]".
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
+ACCOUNT_RATE_LIMITS: dict[str, str] | bool = {"login_failed": "5/5m/ip,5/5m/key"}
 HEADLESS_ONLY = True
 # Serves allauth's API description at /_allauth/openapi.json (used to export
 # allauth-openapi.json for the frontend client). Turned off in production.py.
@@ -167,6 +188,11 @@ HEADLESS_FRONTEND_URLS = {
     "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
     "account_reset_password_from_key": f"{FRONTEND_URL}/reset-password/{{key}}",
     "account_signup": f"{FRONTEND_URL}/signup",
+    # Linked from the "you already have an account" email. Without it, signing up with an
+    # existing email crashed (500).
+    "account_reset_password": f"{FRONTEND_URL}/forgot-password",
+    # Where Google login errors land once Google login is switched on.
+    "socialaccount_login_error": f"{FRONTEND_URL}/login",
 }
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_TOTP_ISSUER = "RetentionOS"
@@ -202,6 +228,10 @@ CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", FRONTEND_URL)
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", FRONTEND_URL)
 SESSION_COOKIE_HTTPONLY = True
+# Log-in lasts 7 days from the moment of login (not extended by activity, because
+# SESSION_SAVE_EVERY_REQUEST stays False). So a founder enters password + 2-step code
+# about once a week: safe enough for brand data, not annoying. Django's default is 14 days.
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN") or None
 CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
@@ -211,3 +241,13 @@ EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBac
 EMAIL_FILE_PATH = env("EMAIL_FILE_PATH", str(BASE_DIR / "tmp" / "emails"))
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "RetentionOS <no-reply@localhost>")
 
+# --- Logs and errors (technical.md §18): see apps/core/observability.py ---
+LOG_LEVEL = env("LOG_LEVEL", "INFO")
+LOG_FORMAT = env("LOG_FORMAT", "console" if DEBUG else "json")  # json | console
+LOGGING = logging_config(json_logs=LOG_FORMAT == "json", level=LOG_LEVEL)
+# Sentry is off unless SENTRY_DSN is set; it never receives personal data.
+SENTRY_ENABLED = init_sentry(
+    os.environ.get("SENTRY_DSN", ""),
+    environment=env("SENTRY_ENVIRONMENT", "local"),
+    traces_sample_rate=float(env("SENTRY_TRACES_SAMPLE_RATE", "0")),
+)

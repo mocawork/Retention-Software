@@ -2,6 +2,7 @@ import re
 
 import pytest
 from django.core import mail
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -9,6 +10,14 @@ from apps.brands.models import Role
 from apps.brands.services import create_brand
 
 PASSWORD = "a-Strong-passw0rd!"
+
+
+@pytest.fixture(autouse=True)
+def _fresh_cache():
+    """Throttles, rate limits and used 2-step codes live in the cache: start each test clean."""
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture
@@ -52,6 +61,7 @@ def brand_with(make_user):
     return _make
 
 
-def last_mail_link():
-    body = mail.outbox[-1].body
-    return re.search(r"https?://\S+", body).group(0)
+def last_mail_link() -> str:
+    match = re.search(r"https?://\S+", str(mail.outbox[-1].body))
+    assert match, "no link in the last email"
+    return match.group(0)

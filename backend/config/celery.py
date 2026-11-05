@@ -1,4 +1,5 @@
 """Celery app. Queues follow technical.md §14. No business tasks yet (M0)."""
+
 import os
 
 from celery import Celery

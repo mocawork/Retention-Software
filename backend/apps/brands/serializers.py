@@ -11,8 +11,16 @@ class BrandSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Brand
-        fields = ["id", "name", "timezone", "currency", "platform", "status", "my_role",
-                  "created_at"]
+        fields = [
+            "id",
+            "name",
+            "timezone",
+            "currency",
+            "platform",
+            "status",
+            "my_role",
+            "created_at",
+        ]
         read_only_fields = ["id", "currency", "platform", "status", "my_role", "created_at"]
 
     def get_my_role(self, obj) -> str | None:
@@ -43,11 +51,28 @@ class MembershipSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source="public_id", read_only=True)
     role = serializers.ChoiceField(choices=Role.choices)
+    status = serializers.ChoiceField(
+        source="effective_status",
+        choices=Invitation.Status.choices,
+        read_only=True,
+        help_text="'expired' = the 7-day link ran out; invite again to send a new one.",
+    )
 
     class Meta:
         model = Invitation
         fields = ["id", "email", "role", "status", "expires_at", "created_at"]
         read_only_fields = ["id", "status", "expires_at", "created_at"]
+
+
+class InvitationPreviewSerializer(serializers.Serializer):
+    """What the invitee sees before logging in. No IDs, nothing else about the brand."""
+
+    brand_name = serializers.CharField()
+    role = serializers.ChoiceField(choices=Role.choices)
+    email = serializers.EmailField(help_text="The address the invitation was sent to.")
+    invited_by_name = serializers.CharField(help_text="Inviter's name, or their email.")
+    status = serializers.ChoiceField(choices=Invitation.Status.choices)
+    expires_at = serializers.DateTimeField()
 
 
 class AcceptInvitationSerializer(serializers.Serializer):

@@ -9,6 +9,7 @@ The rule is configuration only, so the founders' later decision needs no code ch
 
 A user who has no brand yet is treated as a future Owner (they're about to create one).
 """
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -33,9 +34,7 @@ def _applies_to(user) -> bool:
     from apps.brands.models import Membership
 
     roles = set(getattr(settings, "MFA_ENFORCED_ROLES", []))
-    user_roles = set(
-        Membership.objects.unscoped().filter(user=user).values_list("role", flat=True)
-    )
+    user_roles = set(Membership.objects.unscoped().filter(user=user).values_list("role", flat=True))
     if not user_roles:
         return "owner" in roles
     return bool(user_roles & roles)
@@ -54,6 +53,8 @@ def mfa_status(user, now: datetime | None = None) -> MfaStatus:
     else:
         raise ValueError(f"Unknown MFA_ENFORCEMENT value: {policy!r}")
     return MfaStatus(
-        enabled=enabled, required=True, deadline=deadline,
+        enabled=enabled,
+        required=True,
+        deadline=deadline,
         blocked=(not enabled) and now >= deadline,
     )

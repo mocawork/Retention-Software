@@ -1,19 +1,11 @@
-from rest_framework import generics, serializers
+from rest_framework import generics
 
 from apps.brands.models import Role
 from apps.brands.permissions import BrandScopedMixin
 
 from .models import AuditLog
-
-
-class AuditLogSerializer(serializers.ModelSerializer):
-    id = serializers.CharField(source="public_id", read_only=True)
-    actor_email = serializers.EmailField(source="actor.email", read_only=True, default=None)
-
-    class Meta:
-        model = AuditLog
-        fields = ["id", "action", "actor_email", "target_type", "target_id", "metadata",
-                  "created_at"]
+from .selectors import security_events_for_user
+from .serializers import AuditLogSerializer, SecurityEventSerializer
 
 
 class AuditLogListView(BrandScopedMixin, generics.ListAPIView):
@@ -22,3 +14,14 @@ class AuditLogListView(BrandScopedMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return AuditLog.objects.for_brand(self.brand).select_related("actor")[:200]
+
+
+class MySecurityEventsView(generics.ListAPIView):
+    """My own latest 50 security events (logins, failed attempts, password and 2-step
+    changes). Reachable before 2-step login is set up, like /me/."""
+
+    serializer_class = SecurityEventSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return security_events_for_user(self.request.user)

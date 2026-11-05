@@ -4,6 +4,7 @@ The frontend generates its typed login/sign-up client from this file (CLAUDE.md 
 the same way it uses backend/openapi.json for our own API. CI regenerates it and fails
 if the committed copy is out of date.
 """
+
 import json
 from pathlib import Path
 

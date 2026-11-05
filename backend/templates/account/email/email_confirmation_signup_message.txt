@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}{% autoescape off %}Thanks for signing up for RetentionOS. Please confirm that this is your email address.
+{% if code %}
+Your confirmation code is: {{ code }}
+{% else %}
+Open this link to confirm:
+{{ activate_url }}
+{% endif %}
+The link works for {{ confirmation_valid_for }}. If you didn't sign up for RetentionOS, you can ignore this email and no account will be created.{% endautoescape %}{% endblock content %}

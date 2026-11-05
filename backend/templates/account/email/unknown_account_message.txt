@@ -1,0 +1,7 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}{% autoescape off %}Someone (maybe you) asked to reset the RetentionOS password for {{ email }}, but there is no RetentionOS account with this email address.
+
+If you meant to create an account, you can sign up here:
+{{ signup_url }}
+
+If you didn't ask for this, you can ignore this email.{% endautoescape %}{% endblock content %}

@@ -51,6 +51,9 @@ paths:
   /api/v1/brands/{brand_id}/:
     get:
       operationId: brands_retrieve
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -71,6 +74,9 @@ paths:
           description: ''
     patch:
       operationId: brands_partial_update
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -103,6 +109,9 @@ paths:
   /api/v1/brands/{brand_id}/audit-log/:
     get:
       operationId: brands_audit_log_list
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -126,6 +135,9 @@ paths:
   /api/v1/brands/{brand_id}/invitations/:
     get:
       operationId: brands_invitations_list
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -148,6 +160,9 @@ paths:
           description: ''
     post:
       operationId: brands_invitations_create
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -178,9 +193,54 @@ paths:
               schema:
                 $ref: '#/components/schemas/Invitation'
           description: ''
+  /api/v1/brands/{brand_id}/invitations/{invitation_id}/:
+    delete:
+      operationId: brands_invitations_destroy
+      description: Revoke (cancel) an invitation. Owner/Admin; only an Owner can revoke
+        an Owner invite.
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: invitation_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
   /api/v1/brands/{brand_id}/members/:
     get:
       operationId: brands_members_list
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -204,6 +264,9 @@ paths:
   /api/v1/brands/{brand_id}/members/{member_id}/:
     patch:
       operationId: brands_members_partial_update
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -240,6 +303,9 @@ paths:
           description: ''
     delete:
       operationId: brands_members_destroy
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -262,6 +328,9 @@ paths:
   /api/v1/brands/{brand_id}/onboarding/:
     get:
       operationId: brands_onboarding_retrieve
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       parameters:
       - in: path
         name: brand_id
@@ -296,9 +365,46 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: ''
+  /api/v1/invitations/{token}/:
+    get:
+      operationId: invitations_retrieve
+      description: |-
+        Public: what an invitation link is for, so the invitee can sign up or log in.
+
+        Unknown tokens get a plain 404, the same as any missing page.
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+        required: true
+      tags:
+      - invitations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationPreview'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: ''
   /api/v1/invitations/accept/:
     post:
       operationId: invitations_accept_create
+      description: |-
+        Every /api/v1/ view uses this (directly or via BrandScopedMixin), except the short
+        exemption list in tests/test_mfa_enforcement.py (me, health, schema, public pages).
       tags:
       - invitations
       requestBody:
@@ -364,6 +470,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/me/security-events/:
+    get:
+      operationId: me_security_events_list
+      description: |-
+        My own latest 50 security events (logins, failed attempts, password and 2-step
+        changes). Reachable before 2-step login is set up, like /me/.
+      tags:
+      - me
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SecurityEvent'
           description: ''
 components:
   schemas:
@@ -466,6 +592,22 @@ components:
         * `onboarding` - Onboarding
         * `active` - Active
         * `suspended` - Suspended
+    Error:
+      type: object
+      description: Every API error has this shape (apps/core/exceptions.py).
+      properties:
+        code:
+          type: string
+          description: Stable machine code, e.g. "not_found".
+        message:
+          type: string
+          description: Plain-English message that can be shown.
+        details:
+          description: Field errors, or {} when there are none.
+      required:
+      - code
+      - details
+      - message
     Health:
       type: object
       properties:
@@ -489,6 +631,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/InvitationStatusEnum'
           readOnly: true
+          description: |-
+            'expired' = the 7-day link ran out; invite again to send a new one.
+
+            * `pending` - Pending
+            * `accepted` - Accepted
+            * `revoked` - Revoked
+            * `expired` - Expired
         expires_at:
           type: string
           format: date-time
@@ -502,6 +651,34 @@ components:
       - email
       - expires_at
       - id
+      - role
+      - status
+    InvitationPreview:
+      type: object
+      description: What the invitee sees before logging in. No IDs, nothing else about
+        the brand.
+      properties:
+        brand_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        email:
+          type: string
+          format: email
+          description: The address the invitation was sent to.
+        invited_by_name:
+          type: string
+          description: Inviter's name, or their email.
+        status:
+          $ref: '#/components/schemas/InvitationStatusEnum'
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - brand_name
+      - email
+      - expires_at
+      - invited_by_name
       - role
       - status
     InvitationRequest:
@@ -522,11 +699,13 @@ components:
       - pending
       - accepted
       - revoked
+      - expired
       type: string
       description: |-
         * `pending` - Pending
         * `accepted` - Accepted
         * `revoked` - Revoked
+        * `expired` - Expired
     Me:
       type: object
       properties:
@@ -666,6 +845,60 @@ components:
         * `admin` - Admin
         * `marketer` - Marketer
         * `viewer` - Viewer
+    SecurityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/SecurityEventTypeEnum'
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+          description: Plain-English line to show, e.g. 'Logged in'.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+        user_agent:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - description
+      - id
+      - ip_address
+      - type
+      - user_agent
+    SecurityEventTypeEnum:
+      enum:
+      - login
+      - login_failed
+      - logout
+      - email_verified
+      - password_reset
+      - password_changed
+      - mfa_enabled
+      - mfa_disabled
+      - recovery_codes_generated
+      type: string
+      description: |-
+        * `login` - Logged in
+        * `login_failed` - Failed login attempt
+        * `logout` - Logged out
+        * `email_verified` - Email address verified
+        * `password_reset` - Password reset by email link
+        * `password_changed` - Password changed
+        * `mfa_enabled` - 2-step login turned on
+        * `mfa_disabled` - 2-step login turned off
+        * `recovery_codes_generated` - New recovery codes created
     StateEnum:
       enum:
       - done

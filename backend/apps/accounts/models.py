@@ -1,13 +1,15 @@
+from typing import Any, ClassVar
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
 from apps.core.models import PublicIdModel
 
 
-class UserManager(BaseUserManager):
+class UserManager(BaseUserManager["User"]):
     use_in_migrations = True
 
-    def create_user(self, email, password=None, **extra):
+    def create_user(self, email: str, password: str | None = None, **extra: Any) -> "User":
         if not email:
             raise ValueError("Email is required")
         user = self.model(email=self.normalize_email(email).lower(), **extra)
@@ -15,7 +17,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, **extra):
+    def create_superuser(self, email: str, password: str | None = None, **extra: Any) -> "User":
         extra.update(is_staff=True, is_superuser=True)
         return self.create_user(email, password, **extra)
 
@@ -31,8 +33,8 @@ class User(AbstractBaseUser, PermissionsMixin, PublicIdModel):
 
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"
-    REQUIRED_FIELDS: list[str] = []
-    objects = UserManager()
+    REQUIRED_FIELDS: ClassVar[list[str]] = []
+    objects: ClassVar[UserManager] = UserManager()
 
     def __str__(self) -> str:
         return self.email

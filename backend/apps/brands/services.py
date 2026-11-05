@@ -1,18 +1,67 @@
 """Write logic for brands, members and invitations. Views stay thin."""
+
 import secrets
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
 from apps.audit.services import record
 
 from .models import Brand, Invitation, Membership, Role
 
 INVITE_TTL = timedelta(days=7)
+
+
+class InvitationInvalid(APIException):
+    """Revoked, already used, or unknown. Each subclass has its own `code` for the app."""
+
+    status_code = 400
+    default_code = "invitation_invalid"
+    default_detail = "This invitation is no longer valid."
+
+
+class InvitationExpired(InvitationInvalid):
+    default_code = "invitation_expired"
+    default_detail = "This invitation has expired. Ask for a new one."
+
+
+class InvitationEmailMismatch(InvitationInvalid):
+    default_code = "invitation_email_mismatch"
+    default_detail = "This invitation was sent to a different email address."
+
+
+class InvitationAlreadyAccepted(InvitationInvalid):
+    default_code = "invitation_already_accepted"
+    default_detail = "This invitation has already been accepted."
+
+
+def display_name(user) -> str:
+    """How we name a teammate to others: their name, or their email if they have none."""
+    if user is None:
+        return "A teammate"
+    return user.full_name.strip() or user.email
+
+
+def _send_invitation_email(invitation: Invitation) -> None:
+    context = {
+        "brand_name": invitation.brand.name,
+        "inviter_name": display_name(invitation.invited_by),
+        "role_label": invitation.get_role_display(),
+        "accept_url": f"{settings.FRONTEND_URL}/invitations/{invitation.token}",
+        "expiry_days": INVITE_TTL.days,
+    }
+    subject = render_to_string("brands/email/invitation_subject.txt", context)
+    send_mail(
+        subject=" ".join(subject.split()),
+        message=render_to_string("brands/email/invitation_message.txt", context),
+        from_email=None,
+        recipient_list=[invitation.email],
+    )
 
 
 @transaction.atomic
@@ -46,39 +95,70 @@ def invite_member(*, actor_membership: Membership, email: str, role: str, reques
         invited_by=actor_membership.user,
         expires_at=timezone.now() + INVITE_TTL,
     )
-    link = f"{settings.FRONTEND_URL}/invitations/{invitation.token}"
-    send_mail(
-        subject=f"You're invited to {brand.name} on RetentionOS",
-        message=f"{actor_membership.user.email} invited you to join {brand.name} as "
-        f"{invitation.get_role_display()}.\n\nAccept: {link}\n\nThis link expires in 7 days.",
-        from_email=None,
-        recipient_list=[email],
+    _send_invitation_email(invitation)
+    record(
+        brand=brand,
+        actor=actor_membership.user,
+        action="member.invited",
+        target=invitation,
+        metadata={"email": email, "role": role},
+        request=request,
     )
-    record(brand=brand, actor=actor_membership.user, action="member.invited", target=invitation,
-           metadata={"email": email, "role": role}, request=request)
     return invitation
 
 
 @transaction.atomic
 def accept_invitation(*, user, token: str, request=None) -> Membership:
-    invitation = (
-        Invitation.objects.unscoped().select_for_update().filter(token=token).first()
-    )
-    if invitation is None or invitation.status != Invitation.Status.PENDING:
-        raise ValidationError({"token": "This invitation is no longer valid."})
-    if invitation.expires_at < timezone.now():
-        raise ValidationError({"token": "This invitation has expired. Ask for a new one."})
+    invitation = Invitation.objects.unscoped().select_for_update().filter(token=token).first()
+    if invitation is None:
+        raise InvitationInvalid()
+    if invitation.status == Invitation.Status.ACCEPTED:
+        raise InvitationAlreadyAccepted()
+    if invitation.status != Invitation.Status.PENDING:
+        raise InvitationInvalid()
+    if invitation.is_expired:
+        raise InvitationExpired()
     if invitation.email.lower() != user.email.lower():
-        raise ValidationError({"token": "This invitation was sent to a different email address."})
+        raise InvitationEmailMismatch()
     membership, _ = Membership.objects.for_brand(invitation.brand).get_or_create(
         brand=invitation.brand, user=user, defaults={"role": invitation.role}
     )
     invitation.status = Invitation.Status.ACCEPTED
     invitation.accepted_at = timezone.now()
     invitation.save(update_fields=["status", "accepted_at", "updated_at"])
-    record(brand=invitation.brand, actor=user, action="member.joined", target=membership,
-           metadata={"role": membership.role}, request=request)
+    record(
+        brand=invitation.brand,
+        actor=user,
+        action="member.joined",
+        target=membership,
+        metadata={"role": membership.role},
+        request=request,
+    )
     return membership
+
+
+@transaction.atomic
+def revoke_invitation(
+    *, actor_membership: Membership, invitation: Invitation, request=None
+) -> Invitation:
+    """Cancels an invitation so its link stops working. Revoking twice is harmless."""
+    if invitation.status == Invitation.Status.ACCEPTED:
+        raise InvitationAlreadyAccepted()
+    if invitation.role == Role.OWNER and actor_membership.role != Role.OWNER:
+        raise PermissionDenied("Only an Owner can cancel an invitation to become an Owner.")
+    if invitation.status == Invitation.Status.REVOKED:
+        return invitation
+    invitation.status = Invitation.Status.REVOKED
+    invitation.save(update_fields=["status", "updated_at"])
+    record(
+        brand=invitation.brand,
+        actor=actor_membership.user,
+        action="member.invitation_revoked",
+        target=invitation,
+        metadata={"email": invitation.email, "role": invitation.role},
+        request=request,
+    )
+    return invitation
 
 
 @transaction.atomic
@@ -90,8 +170,14 @@ def change_role(*, actor_membership: Membership, membership: Membership, role: s
     old = membership.role
     membership.role = role
     membership.save(update_fields=["role", "updated_at"])
-    record(brand=membership.brand, actor=actor_membership.user, action="member.role_changed",
-           target=membership, metadata={"from": old, "to": role}, request=request)
+    record(
+        brand=membership.brand,
+        actor=actor_membership.user,
+        action="member.role_changed",
+        target=membership,
+        metadata={"from": old, "to": role},
+        request=request,
+    )
     return membership
 
 
@@ -100,8 +186,14 @@ def remove_member(*, actor_membership: Membership, membership: Membership, reque
     if membership.role == Role.OWNER and actor_membership.role != Role.OWNER:
         raise PermissionDenied("Only an Owner can remove another Owner.")
     _ensure_not_last_owner(membership, new_role=None)
-    record(brand=membership.brand, actor=actor_membership.user, action="member.removed",
-           target=membership, metadata={"email": membership.user.email}, request=request)
+    record(
+        brand=membership.brand,
+        actor=actor_membership.user,
+        action="member.removed",
+        target=membership,
+        metadata={"email": membership.user.email},
+        request=request,
+    )
     membership.delete()
 
 

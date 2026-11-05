@@ -1,0 +1,7 @@
+{% autoescape off %}Hi,
+
+{% block content %}{% endblock content %}
+
+The RetentionOS team
+
+You're getting this email because of activity on a RetentionOS account linked to this address.{% endautoescape %}

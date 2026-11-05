@@ -1,0 +1,11 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}{% autoescape off %}We're letting you know about a change to your RetentionOS account:
+
+{% block notification_message %}{% endblock notification_message %}
+
+If you didn't make this change, reset your password straight away.
+
+Where the change came from:
+- IP address: {{ ip }}
+- Browser: {{ user_agent }}
+- Time: {{ timestamp }}{% endautoescape %}{% endblock content %}

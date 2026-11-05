@@ -1,4 +1,5 @@
 """Non-guessable public IDs (technical.md §4.3). Internal PKs stay BigAutoField."""
+
 import secrets
 
 _ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"  # Crockford-ish base32, lowercase
