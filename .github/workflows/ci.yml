@@ -1,0 +1,226 @@
+# CI: the automatic checks that run on every pull request and on every push to main
+# (CLAUDE.md R-10 and R-11, technical.md §3.3 and §19). A pull request is merged only when
+# all three jobs are green. Deploy steps come later, once hosting is decided (O-01).
+#
+# Organization policy allows only GitHub-owned actions. Each one is pinned to an exact
+# commit (the comment shows its version) and Dependabot proposes updates. gitleaks is
+# downloaded from its official release and checked against a known SHA-256 fingerprint.
+# Run the same checks on your computer with `make check`.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same pull request cancels the older run. Runs on main always finish,
+# so every merge gets a complete result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Keep UV_VERSION in step with the uv image in backend/Dockerfile.
+  UV_VERSION: "0.13.5"
+  PYTHON_VERSION: "3.12"
+  GITLEAKS_VERSION: "8.30.1"
+  # SHA-256 of gitleaks_8.30.1_linux_x64.tar.gz, from the release's checksums file.
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests, API drift)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: retentionos
+          POSTGRES_USER: retentionos
+          POSTGRES_PASSWORD: retentionos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U retentionos -d retentionos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Test-only values. Real secrets never appear in CI files (CLAUDE.md R-8, R-11).
+      DJANGO_SECRET_KEY: ci-only-not-secret
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: retentionos
+      POSTGRES_USER: retentionos
+      POSTGRES_PASSWORD: retentionos
+      REDIS_URL: redis://localhost:6379/0
+      REDIS_CACHE_URL: redis://localhost:6379/1
+      UV_PYTHON_DOWNLOADS: never
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv (pinned)
+        run: python -m pip install --disable-pip-version-check "uv==${UV_VERSION}"
+
+      - name: Reuse downloaded Python packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('backend/uv.lock') }}
+          restore-keys: uv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+
+      - name: Install backend packages (exactly as locked in uv.lock)
+        run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run ruff check --output-format=github .
+
+      - name: Formatting (ruff format)
+        run: uv run ruff format --check .
+
+      - name: Types (mypy)
+        run: uv run mypy .
+
+      - name: Every model change has a migration
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Tests (pytest, with Postgres and Redis)
+        run: uv run pytest
+
+      - name: API description is up to date (OpenAPI drift check)
+        run: |
+          uv run python manage.py spectacular --file openapi.json --validate
+          uv run python manage.py export_auth_schema --file allauth-openapi.json
+          if ! git diff --exit-code -- openapi.json allauth-openapi.json; then
+            echo "::error::backend/openapi.json or backend/allauth-openapi.json is out of date. Run 'make schema client' and commit the result."
+            exit 1
+          fi
+
+      - name: Keep the package cache small
+        run: uv cache prune --ci
+
+  frontend:
+    name: Frontend (lint, types, tests, API client drift)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Is there a frontend project yet?
+        id: guard
+        working-directory: .
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No frontend/package.json yet, so the frontend checks are skipped."
+          fi
+
+      - name: Set up Node.js (version from package.json "engines")
+        if: steps.guard.outputs.present == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/package.json
+          package-manager-cache: false
+
+      - name: Turn on pnpm (version from package.json "packageManager")
+        if: steps.guard.outputs.present == 'true'
+        id: pnpm
+        run: |
+          corepack enable
+          pnpm --version
+          echo "store=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Reuse downloaded website packages
+        if: steps.guard.outputs.present == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm.outputs.store }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - name: Install website packages (exactly as locked in pnpm-lock.yaml)
+        if: steps.guard.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        if: steps.guard.outputs.present == 'true'
+        run: pnpm lint
+
+      - name: Types (TypeScript)
+        if: steps.guard.outputs.present == 'true'
+        run: pnpm typecheck
+
+      - name: Tests (Vitest)
+        if: steps.guard.outputs.present == 'true'
+        run: pnpm test
+
+      - name: API client is up to date (OpenAPI drift check)
+        if: steps.guard.outputs.present == 'true'
+        run: |
+          pnpm generate:api
+          # "git status" also catches new generated files that were never committed.
+          if [ -n "$(git status --porcelain -- src/lib/api)" ]; then
+            git status --short -- src/lib/api
+            git diff --stat -- src/lib/api
+            echo "::error::The generated API client in frontend/src/lib/api is out of date. Run 'make client' and commit the result."
+            exit 1
+          fi
+
+  secrets:
+    name: Secrets scan (gitleaks, full history)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code with its full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks (pinned release, fingerprint checked)
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location --retry 3 --output gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: Scan every commit for secrets
+        run: |
+          "${RUNNER_TEMP}/gitleaks" git --config .gitleaks.toml --redact --verbose --no-banner .

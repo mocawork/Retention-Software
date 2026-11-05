@@ -1,0 +1,58 @@
+# Checks that run on your computer before each commit, so most problems are caught before
+# CI sees them. `make setup` turns them on. Run them on every file with:
+#   pre-commit run --all-files
+# Versions are pinned. Keep the ruff version equal to the one in backend/uv.lock and the
+# gitleaks version equal to GITLEAKS_VERSION in .github/workflows/ci.yml.
+
+# Generated files are never edited or reformatted by hand (the OpenAPI drift check in CI
+# compares them byte for byte).
+exclude: ^(backend/(openapi|allauth-openapi)\.json|frontend/src/lib/api/(schema|auth-schema)\.ts)$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Website checks use the tools already installed in frontend/node_modules (make setup).
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: eslint (frontend)
+        language: system
+        files: ^frontend/.*\.(js|jsx|mjs|cjs|ts|tsx|mts|cts)$
+        entry: >-
+          bash -c 'cd frontend && [ -x node_modules/.bin/eslint ]
+          || { echo "Website tools are missing: run make setup"; exit 1; };
+          exec node_modules/.bin/eslint --fix --no-warn-ignored "${@#frontend/}"' --
+      - id: frontend-prettier
+        name: prettier (frontend)
+        language: system
+        files: ^frontend/
+        exclude: ^frontend/pnpm-lock\.yaml$
+        types: [text]
+        entry: >-
+          bash -c 'cd frontend && [ -x node_modules/.bin/prettier ]
+          || { echo "Website tools are missing: run make setup"; exit 1; };
+          exec node_modules/.bin/prettier --write --ignore-unknown "${@#frontend/}"' --

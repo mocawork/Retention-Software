@@ -8,11 +8,15 @@
 # Build arguments:
 #   INSTALL_DEV=true   also install the dev tools (pytest, ruff, mypy). Default: false.
 
+# uv, pinned, from Astral's official image (technical.md §2.2: packaging with uv). Keep the
+# version in step with UV_VERSION in .github/workflows/ci.yml. It is a named stage because
+# Dependabot updates FROM lines (tag and digest), not images named only in COPY --from.
+FROM ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff AS uv
+
 # Python 3.12 (technical.md §2.2). The digest pins the exact image; Dependabot keeps it fresh.
 FROM python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
 
-# uv, pinned, from Astral's official image (technical.md §2.2: packaging with uv).
-COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /uvx /bin/
+COPY --from=uv /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
