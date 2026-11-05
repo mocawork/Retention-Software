@@ -159,6 +159,9 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_LOGIN_BY_CODE_ENABLED = False
 ACCOUNT_RATE_LIMITS = {"login_failed": "5/5m/ip,5/5m/key"}
 HEADLESS_ONLY = True
+# Serves allauth's API description at /_allauth/openapi.json (used to export
+# allauth-openapi.json for the frontend client). Turned off in production.py.
+HEADLESS_SERVE_SPECIFICATION = env_bool("HEADLESS_SERVE_SPECIFICATION", True)
 FRONTEND_URL = env("FRONTEND_URL", "http://localhost:3000")
 HEADLESS_FRONTEND_URLS = {
     "account_confirm_email": f"{FRONTEND_URL}/verify-email/{{key}}",
@@ -204,5 +207,7 @@ SESSION_COOKIE_DOMAIN = os.environ.get("SESSION_COOKIE_DOMAIN") or None
 CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+# Used with the file-based backend (e.g. the Playwright E2E reads verification emails).
+EMAIL_FILE_PATH = env("EMAIL_FILE_PATH", str(BASE_DIR / "tmp" / "emails"))
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "RetentionOS <no-reply@localhost>")
 
