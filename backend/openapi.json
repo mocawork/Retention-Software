@@ -1,0 +1,690 @@
+openapi: 3.0.3
+info:
+  title: RetentionOS API
+  version: 1.0.0
+paths:
+  /api/v1/brands/:
+    get:
+      operationId: brands_list
+      description: Brands I belong to; create a new brand (I become its Owner).
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+          description: ''
+    post:
+      operationId: brands_create
+      description: Brands I belong to; create a new brand (I become its Owner).
+      tags:
+      - brands
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BrandRequest'
+        required: true
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/brands/{brand_id}/:
+    get:
+      operationId: brands_retrieve
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+    patch:
+      operationId: brands_partial_update
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandRequest'
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/brands/{brand_id}/audit-log/:
+    get:
+      operationId: brands_audit_log_list
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/v1/brands/{brand_id}/invitations/:
+    get:
+      operationId: brands_invitations_list
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invitation'
+          description: ''
+    post:
+      operationId: brands_invitations_create
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvitationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvitationRequest'
+        required: true
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+          description: ''
+  /api/v1/brands/{brand_id}/members/:
+    get:
+      operationId: brands_members_list
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membership'
+          description: ''
+  /api/v1/brands/{brand_id}/members/{member_id}/:
+    patch:
+      operationId: brands_members_partial_update
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMembershipRequest'
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+    delete:
+      operationId: brands_members_destroy
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: member_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/brands/{brand_id}/onboarding/:
+    get:
+      operationId: brands_onboarding_retrieve
+      parameters:
+      - in: path
+        name: brand_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - brands
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Onboarding'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/v1/invitations/accept/:
+    post:
+      operationId: invitations_accept_create
+      tags:
+      - invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitationRequest'
+        required: true
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+          description: ''
+  /api/v1/me/:
+    get:
+      operationId: me_retrieve
+      description: The logged-in user's own profile.
+      tags:
+      - me
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    patch:
+      operationId: me_partial_update
+      description: The logged-in user's own profile.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMeRequest'
+      security:
+      - XSessionTokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+components:
+  schemas:
+    AcceptInvitationRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+      required:
+      - token
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        action:
+          type: string
+          maxLength: 64
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        target_type:
+          type: string
+          maxLength: 64
+        target_id:
+          type: string
+          maxLength: 64
+        metadata: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - created_at
+      - id
+    Brand:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        timezone:
+          type: string
+          maxLength: 64
+        currency:
+          type: string
+          readOnly: true
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/BrandStatusEnum'
+          readOnly: true
+        my_role:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - currency
+      - id
+      - my_role
+      - name
+      - platform
+      - status
+    BrandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - name
+    BrandStatusEnum:
+      enum:
+      - onboarding
+      - active
+      - suspended
+      type: string
+      description: |-
+        * `onboarding` - Onboarding
+        * `active` - Active
+        * `suspended` - Suspended
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvitationStatusEnum'
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - expires_at
+      - id
+      - role
+      - status
+    InvitationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+      required:
+      - email
+      - role
+    InvitationStatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
+    Me:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        mfa:
+          allOf:
+          - $ref: '#/components/schemas/MfaStatus'
+          readOnly: true
+      required:
+      - email
+      - id
+      - mfa
+    Membership:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - full_name
+      - id
+      - role
+    MfaStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: 2-step login is set up.
+        required:
+          type: boolean
+          description: The current policy requires it.
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: When it becomes blocking. Null = never.
+        blocked:
+          type: boolean
+          description: True = the user must set up 2-step login before continuing.
+      required:
+      - blocked
+      - deadline
+      - enabled
+      - required
+    Onboarding:
+      type: object
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OnboardingStep'
+      required:
+      - steps
+    OnboardingStep:
+      type: object
+      properties:
+        key:
+          type: string
+        title:
+          type: string
+        state:
+          $ref: '#/components/schemas/StateEnum'
+        description:
+          type: string
+      required:
+      - description
+      - key
+      - state
+      - title
+    PatchedBrandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+    PatchedMeRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 150
+    PatchedMembershipRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+    PlatformEnum:
+      enum:
+      - none
+      - shopify
+      - woocommerce
+      - csv
+      type: string
+      description: |-
+        * `none` - Not connected yet
+        * `shopify` - Shopify
+        * `woocommerce` - WooCommerce
+        * `csv` - CSV import
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - marketer
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `marketer` - Marketer
+        * `viewer` - Viewer
+    StateEnum:
+      enum:
+      - done
+      - current
+      - coming_next
+      - locked
+      type: string
+      description: |-
+        * `done` - done
+        * `current` - current
+        * `coming_next` - coming_next
+        * `locked` - locked
+  securitySchemes:
+    XSessionTokenAuth:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: X-Session-Token authentication
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
