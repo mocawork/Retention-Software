@@ -25,6 +25,13 @@
 
 ## Decision log
 
+### D-040 · Shopify integration is rebuilt in Django (resolves O-15)
+- Date: 2026-11-05 · Author: Founder · Status: Decided
+- Decision: Option B of O-15. The Shopify app (install, OAuth, bulk import, webhooks, reconciliation, compliance webhooks, billing) is re-implemented in Django as `integrations_shopify`. The teammate's Node.js app (retention-os-shopify-app) is used as the reference spec, and its tests as the checklist (PRD §A2.8).
+- Why: One language, one database layer, one deploy.
+- Impact: Built in M1, not M0 (the M0 stop line still applies). Other gaps that block store connection (G1–G4, G16, O-16, O-17) remain open. `technical.md` §6.1, PRD §A2.8.
+- Replaces / relates to: O-15, D-031.
+
 ### D-039 · 2-step login built now; when it becomes mandatory is a setting
 - Date: 2026-11-05 · Author: Claude · Status: Proposed
 - Decision: M0 builds TOTP 2-step login for all users. Whether it is mandatory at sign-up or within 7 days (before export/launch) is a configuration setting, because U-4 is still open.
